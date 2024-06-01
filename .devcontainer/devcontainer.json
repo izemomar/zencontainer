@@ -1,0 +1,35 @@
+{
+	"name": "Zenify App",
+	"dockerComposeFile": [
+		"./docker-compose.yml"
+	],
+	"service": "yarn",
+	"workspaceFolder": "/zenify",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"nrwl.angular-console",
+				"ms-vscode.js-debug-nightly",
+				"ms-azuretools.vscode-docker",
+				"mikestead.dotenv",
+				"christian-kohler.npm-intellisense",
+				"esbenp.prettier-vscode",
+				"bradlc.vscode-tailwindcss",
+				"pmneo.tsimporter",
+				"redhat.vscode-yaml",
+				"aaron-bond.better-comments",
+				"streetsidesoftware.code-spell-checker",
+				"usernamehw.errorlens",
+				"dbaeumer.vscode-eslint"
+			],
+			"settings": {}
+		}
+	},
+	"remoteUser": "nodeuser",
+	//"postCreateCommand": "chown -R 1000:1000 /zenify 2>/dev/null || true",
+	// "forwardPorts": [],
+	"runServices": [
+		"yarn"
+	],
+	"shutdownAction": "stopCompose"
+}

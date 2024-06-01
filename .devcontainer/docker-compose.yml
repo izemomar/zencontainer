@@ -1,0 +1,27 @@
+version: '3.8'
+
+name: zenify
+
+
+services:   
+  yarn:
+    build:
+      context: ./.. # The project root
+      dockerfile: ./.devcontainer/Dockerfile
+      args:
+        - WWWGROUP=${WWWGROUP:-1000}
+        - WWWUSER=${WWWUSER:-1000}
+        - WORKSPACE=/zenify
+    container_name: yarn
+    restart: on-failure
+    image: zenify/yarn:dev
+    ports:
+      - "5001:5000"
+      - "9229:9229"
+    volumes:
+      - ./..:/zenify:delegated
+      - node_modules:/zenify/node_modules
+
+volumes:
+  node_modules:
+    driver: local
