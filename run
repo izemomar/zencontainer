@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+
+DEV_DOCKER_COMPOSE_FILE="./.devcontainer/docker-compose.yml"
+
+if test -t 1; then
+    # Determine if colors are supported...
+    ncolors=$(tput colors)
+
+    if test -n "$ncolors" && test "$ncolors" -ge 8; then
+        BOLD="$(tput bold)"
+        YELLOW="$(tput setaf 3)"
+        GREEN="$(tput setaf 2)"
+        RED="$(tput setaf 1)"
+        NC="$(tput sgr0)"
+    fi
+fi
+
+# check if we're inside a container
+if [ -f /.dockerenv ]; then
+    echo "${RED}This script should not be run inside a container.${NC}"
+    exit 1
+fi
+
+# setup environment variables
+if [ ! -x ./.devcontainer/setup-env.sh ]; then
+    chmod +x ./.devcontainer/setup-env.sh
+fi
+
+# Check if setup-env.sh exists and is executable
+if [ -x ./.devcontainer/setup-env.sh ]; then
+    . ./.devcontainer/setup-env.sh
+else
+    echo "${RED}setup-env.sh does not exist or is not executable. Exiting.${NC}"
+    exit 1
+fi
+
+# check if dockr compose file exists
+function check_docker_compose_file {
+    if [ ! -f "$1" ]; then
+        echo "${RED}Docker compose file ($1) does not exist.${NC}"
+        exit 1
+    fi
+}
+
+function open {
+    check_docker_compose_file "$DEV_DOCKER_COMPOSE_FILE"
+    # check if devcontainer is installed
+    if ! command -v devcontainer &>/dev/null; then
+        echo "${RED}Please install devcontainer by running 'npm install -g devcontainer-cli'${NC}"
+        exit
+    fi
+    echo "${GREEN}Opening dev container...${NC}"
+    devcontainer open
+}
+
+function build {
+    check_docker_compose_file "$DEV_DOCKER_COMPOSE_FILE"
+    echo "${GREEN}Building dev docker image...${NC}"
+    cp ./.docker/dev/.dockerignore .dockerignore
+    docker-compose -f "$DEV_DOCKER_COMPOSE_FILE" build --no-cache --force-rm
+    rm -f .dockerignore
+}
+
+function run {
+    check_docker_compose_file "$DEV_DOCKER_COMPOSE_FILE"
+    echo "${GREEN}Running dev docker image...${NC}"
+    docker-compose -f "$DEV_DOCKER_COMPOSE_FILE" up -d
+}
+
+function up {
+    echo "${GREEN}Building and running dev docker image... ${NC}"
+    stop
+    build
+    # check if build was successful
+    if [ $? -ne 0 ]; then
+        echo "${RED}Build failed. Exiting.${NC}"
+        exit 1
+    fi
+    run
+    docker rmi -f $(docker images -f "dangling=true" -q)
+}
+
+function stop {
+    echo "${GREEN}Stopping dev docker image...${NC}"
+    docker-compose -f "$DEV_DOCKER_COMPOSE_FILE" down
+}
+
+function clean {
+    echo "${GREEN}Cleaning up...${NC}"
+    stop
+    docker-compose -f "$DEV_DOCKER_COMPOSE_FILE" down --rmi all --volumes --remove-orphans
+}
+
+function help {
+    echo "Available commands:"
+    echo "  ${GREEN}up${NC}        Build and run docker compose services"
+    echo "  ${GREEN}stop${NC}      Stop running docker compose services"
+    echo "  ${GREEN}clean${NC}     Stop and remove everything related to docker compose (containers, images, volumes)"
+    echo "  ${GREEN}open${NC}      Open dev container in VS Code"
+}
+
+case "$1" in
+up)
+    up
+    ;;
+stop)
+    stop
+    ;;
+clean)
+    clean
+    ;;
+open)
+    open
+    ;;
+help)
+    help
+    ;;
+*)
+    echo "Usage: $0 {up|stop|clean|open|help}"
+    exit 1
+    ;;
+esac
